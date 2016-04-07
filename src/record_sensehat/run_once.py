@@ -5,7 +5,7 @@ from evdev import InputDevice, list_devices, ecodes
 from datetime import datetime
 import csv
 import threading
-
+import time
 
 dirstr = "/home/pi/data/sensehat/"
 sense = SenseHat()
@@ -23,17 +23,6 @@ if not(found):
 #### FIND JOY_STICK -- END
 
 
-for num in range(1,99999):
-	filestr = dirstr + str(num) +".csv"
-	if not os.path.isfile(filestr):
-		file = open(filestr, 'wt')
-		print(num)
-		sense.show_message(str(num), text_colour=[255, 255, 255], scroll_speed = 0.1)
-		break
-
-sense.set_imu_config(True, True, True)
-writer = csv.writer(file)
-writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
 
 
 UP_PIXELS = [[3, 0], [4, 0]]
@@ -45,11 +34,14 @@ CENTRE_PIXELS = [[3, 3], [4, 3], [3, 4], [4, 4]]
 BLACK = [0, 0, 0]
 WHITE = [255, 255, 255]
 GREEN = [0, 255, 0]
+RED = [255, 0, 0]
 def set_pixels(pixels, col):
     for p in pixels:
         sense.set_pixel(p[0], p[1], col[0], col[1], col[2])
 
-
+set_pixels(DOWN_PIXELS, GREEN)
+is_recording = False
+global writer 
 def handle_code(code, colour):
     if code == ecodes.KEY_DOWN:
         set_pixels(DOWN_PIXELS, colour)
@@ -64,8 +56,30 @@ def handle_code(code, colour):
     elif code == ecodes.KEY_ENTER:
         sense.clear()
         set_pixels(CENTRE_PIXELS, colour)
+        global is_recording
         if colour == BLACK:
-            os._exit(1)
+            if not is_recording:
+                for num in range(1,99999):
+                    filestr = dirstr + str(num) +".csv"
+                    if not os.path.isfile(filestr):
+                        file = open(filestr, 'wt')
+                        print(num)
+                        sense.show_message(str(num), text_colour=[255, 255, 255], scroll_speed = 0.1)
+                        break
+
+                sense.set_imu_config(True, True, True)
+                global writer;
+                writer = csv.writer(file)
+                writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
+                 
+                rt = threading.Thread( target=record, args = () )
+                rt.start()
+                is_recording = True
+            else:
+                sense.show_letter("O")
+                time.sleep(0.2)
+                sense.show_letter("K")
+                os._exit(1)
 
 def key():
     try:
@@ -81,17 +95,17 @@ def key():
 def record():
     global running
     running = True
-    current_colour = GREEN
+    current_colour = RED
 
     while running:
         
 
         set_pixels(DOWN_PIXELS, current_colour)
 
-        if current_colour == GREEN:
+        if current_colour == RED:
             current_colour = BLACK
         else:
-            current_colour = GREEN
+            current_colour = RED
         o = sense.get_orientation_radians()
         pitch = o["pitch"]
         roll = o["roll"]
@@ -112,11 +126,8 @@ def record():
 try:
  
    kt = threading.Thread( target=key, args = () )
-   rt = threading.Thread( target=record, args = () )
-
    kt.start()
 
-   rt.start()
 except:
    print ("Error: unable to start thread")
 
