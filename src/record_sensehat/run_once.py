@@ -48,7 +48,8 @@ def handle_code(code, colour):
     elif code == ecodes.KEY_UP:
         set_pixels(UP_PIXELS, colour)
         if colour == BLACK:
-        	 os.system("sudo shutdown -h now")
+            sense.clear()
+            os.system("sudo shutdown -h now")
     elif code == ecodes.KEY_LEFT:
         set_pixels(LEFT_PIXELS, colour)
     elif code == ecodes.KEY_RIGHT:
