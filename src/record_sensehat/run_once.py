@@ -8,8 +8,8 @@ import threading
 
 
 dirstr = "/home/pi/data/sensehat/"
-filestr = dirstr + "1.csv"
-file = open(filestr, 'wt')
+sense = SenseHat()
+sense.clear()
 #### FIND JOY_STICK -- BEGIN
 devices = [InputDevice(fn) for fn in list_devices()]
 for dev in devices:
@@ -21,11 +21,19 @@ if not(found):
     print('Raspberry Pi Sense HAT Joystick not found. Aborting ...')
     sys.exit()
 #### FIND JOY_STICK -- END
-sense = SenseHat()
-sense.clear()
+
+
+for num in range(1,99999):
+	filestr = dirstr + str(num) +".csv"
+	if not os.path.isfile(filestr):
+		file = open(filestr, 'wt')
+		print(num)
+		sense.show_message(str(num), text_colour=[255, 255, 255], scroll_speed = 0.1)
+		break
+
 sense.set_imu_config(True, True, True)
 writer = csv.writer(file)
-writer.writerow( ('time', 'milliseconds','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
+writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
 
 
 UP_PIXELS = [[3, 0], [4, 0]]
@@ -33,10 +41,10 @@ DOWN_PIXELS = [[3, 7], [4, 7]]
 LEFT_PIXELS = [[0, 3], [0, 4]]
 RIGHT_PIXELS = [[7, 3], [7, 4]]
 CENTRE_PIXELS = [[3, 3], [4, 3], [3, 4], [4, 4]]
-
+ 
 BLACK = [0, 0, 0]
 WHITE = [255, 255, 255]
-
+GREEN = [0, 255, 0]
 def set_pixels(pixels, col):
     for p in pixels:
         sense.set_pixel(p[0], p[1], col[0], col[1], col[2])
@@ -47,11 +55,14 @@ def handle_code(code, colour):
         set_pixels(DOWN_PIXELS, colour)
     elif code == ecodes.KEY_UP:
         set_pixels(UP_PIXELS, colour)
+        if colour == BLACK:
+        	 os.system("sudo shutdown -h now")
     elif code == ecodes.KEY_LEFT:
         set_pixels(LEFT_PIXELS, colour)
     elif code == ecodes.KEY_RIGHT:
         set_pixels(RIGHT_PIXELS, colour)
     elif code == ecodes.KEY_ENTER:
+        sense.clear()
         set_pixels(CENTRE_PIXELS, colour)
         if colour == BLACK:
             os._exit(1)
@@ -70,7 +81,17 @@ def key():
 def record():
     global running
     running = True
+    current_colour = GREEN
+
     while running:
+        
+
+        set_pixels(DOWN_PIXELS, current_colour)
+
+        if current_colour == GREEN:
+            current_colour = BLACK
+        else:
+            current_colour = GREEN
         o = sense.get_orientation_radians()
         pitch = o["pitch"]
         roll = o["roll"]
