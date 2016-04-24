@@ -6,6 +6,17 @@ from datetime import datetime
 import csv
 import threading
 import time
+import ibmiotf.device
+
+options = {
+    "org": "q05eir",
+    "type": "sensor",
+    "id": "1d0b91e70599644cb1a3ca1657e16507",
+    "auth-method": "token",
+    "auth-token": "fg2KDQwyLSCO"
+}
+client = ibmiotf.device.Client(options)
+client.connect()
 
 dirstr = "/home/pi/data/sensehat/"
 sense = SenseHat()
@@ -60,26 +71,14 @@ def handle_code(code, colour):
         global is_recording
         if colour == BLACK:
             if not is_recording:
-                for num in range(1,99999):
-                    filestr = dirstr + str(num) +".csv"
-                    if not os.path.isfile(filestr):
-                        file = open(filestr, 'wt')
-                        print(num)
-                        sense.show_message(str(num), text_colour=[255, 255, 255], scroll_speed = 0.1)
-                        break
-
+                sense.show_message("START", text_colour=[255, 255, 255], scroll_speed = 0.05);
                 sense.set_imu_config(True, True, True)
-                global writer;
-                writer = csv.writer(file)
-                writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
-                 
+
                 rt = threading.Thread( target=record, args = () )
                 rt.start()
                 is_recording = True
             else:
-                sense.show_letter("O")
-                time.sleep(0.2)
-                sense.show_letter("K")
+                sense.show_message("STOP", text_colour=[255, 255, 255], scroll_speed = 0.03)
                 os._exit(1)
 
 def key():
@@ -122,7 +121,8 @@ def record():
         #acc_x = round(acc_x, 5)
         #acc_y = round(acc_y, 5)
         #acc_z = round(acc_z, 5)
-        writer.writerow( ( datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], pitch, roll, yaw, acc_x, acc_y, acc_z) )
+        myData={'d' : { 'x' : acc_x, 'y' : acc_y, 'z' : acc_z}}
+        client.publishEvent("data_raw", "json", myData)
     
 try:
  
