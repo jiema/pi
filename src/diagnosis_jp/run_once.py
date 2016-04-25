@@ -7,6 +7,7 @@ import csv
 import threading
 import time
 import ibmiotf.device
+import time
 
 options = {
     "org": "q05eir",
@@ -123,7 +124,7 @@ def record():
         #acc_z = round(acc_z, 5)
         myData={'d' : { 'x' : acc_x, 'y' : acc_y, 'z' : acc_z}}
         client.publishEvent("data_raw", "json", myData)
-    
+        time.sleep(1)
 try:
  
    kt = threading.Thread( target=key, args = () )

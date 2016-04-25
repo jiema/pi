@@ -10,8 +10,6 @@ import time
 dirstr = "/home/pi/data/sensehat/"
 sense = SenseHat()
 sense.clear()
-
-data = []
 #### FIND JOY_STICK -- BEGIN
 devices = [InputDevice(fn) for fn in list_devices()]
 for dev in devices:
@@ -44,7 +42,6 @@ def set_pixels(pixels, col):
 set_pixels(DOWN_PIXELS, GREEN)
 is_recording = False
 global writer 
-global file
 def handle_code(code, colour):
     if code == ecodes.KEY_DOWN:
         set_pixels(DOWN_PIXELS, colour)
@@ -66,28 +63,23 @@ def handle_code(code, colour):
                 for num in range(1,99999):
                     filestr = dirstr + str(num) +".csv"
                     if not os.path.isfile(filestr):
-                        global file
                         file = open(filestr, 'wt')
                         print(num)
                         sense.show_message(str(num), text_colour=[255, 255, 255], scroll_speed = 0.1)
                         break
 
-                sense.set_imu_config(False, False, True)
+                sense.set_imu_config(True, True, True)
                 global writer;
                 writer = csv.writer(file)
-                #writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
-                writer.writerow( ('time', 'accX', 'accY', 'accZ') )
+                writer.writerow( ('time','pitch(rad)', 'roll(rad)', 'yaw(rad)', 'accX', 'accY', 'accZ') )
+                 
                 rt = threading.Thread( target=record, args = () )
                 rt.start()
                 is_recording = True
             else:
-                for item in data:
-                    #print(item)
-                    writer.writerow(item)
                 sense.show_letter("O")
                 time.sleep(0.2)
                 sense.show_letter("K")
-                file.close();
                 os._exit(1)
 
 def key():
@@ -105,24 +97,20 @@ def record():
     global running
     running = True
     current_colour = RED
-    i = 0;
-    set_pixels(DOWN_PIXELS, current_colour)
+
     while running:
         
-        #i = i + 1
-        
-        
-        #if (i%50 == 0):
-        #    if current_colour == RED:
-         #       current_colour = BLACK
-         #   else:
-        #        current_colour = RED
-         #   set_pixels(DOWN_PIXELS, current_colour)
-              
-        #o = sense.get_orientation_radians()
-        #pitch = o["pitch"]
-        #roll = o["roll"]
-        #yaw = o["yaw"]
+
+        set_pixels(DOWN_PIXELS, current_colour)
+
+        if current_colour == RED:
+            current_colour = BLACK
+        else:
+            current_colour = RED
+        o = sense.get_orientation_radians()
+        pitch = o["pitch"]
+        roll = o["roll"]
+        yaw = o["yaw"]
         #pitch = round(pitch, 5)
         #roll = round(roll, 5)
         #yaw = round(yaw, 5)
@@ -134,8 +122,8 @@ def record():
         #acc_x = round(acc_x, 5)
         #acc_y = round(acc_y, 5)
         #acc_z = round(acc_z, 5)
-        #data.append ( (datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], pitch, roll, yaw, acc_x, acc_y, acc_z) )
-        data.append ( (datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], acc_x, acc_y, acc_z) )
+        writer.writerow( ( datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], pitch, roll, yaw, acc_x, acc_y, acc_z) )
+    
 try:
  
    kt = threading.Thread( target=key, args = () )
